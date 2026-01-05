@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Image Gen — Flux-1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #09090b; color: #fafafa; }
+        .card { background-color: #18181b; border: 1px solid #27272a; }
+        .input-field { background-color: #09090b; border: 1px solid #27272a; transition: all 0.2s; }
+        .input-field:focus { border-color: #3f3f46; outline: none; }
+        .btn-primary { background-color: #fafafa; color: #09090b; transition: all 0.2s; }
+        .btn-primary:hover { background-color: #e4e4e7; }
+        .btn-primary:disabled { background-color: #27272a; color: #52525b; cursor: not-allowed; }
+        .skeleton { background-color: #27272a; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+    </style>
+</head>
+<body class="antialiased">
+
+    <main class="max-w-4xl mx-auto px-6 py-16">
+        <!-- Input Section -->
+        <div class="max-w-2xl mb-12">
+            <h1 class="text-4xl font-semibold mb-3 tracking-tight">AI Image Generator.</h1>
+            <p class="text-zinc-400 mb-8 text-sm leading-relaxed">Gunakan model Flux-1 Dev untuk membuat gambar dari teks secara instan.</p>
+            
+            <div class="flex flex-col gap-3">
+                <textarea id="prompt" placeholder="Describe what you want to see..." 
+                    class="input-field w-full px-4 py-3 rounded-md text-sm min-h-[100px] resize-none"></textarea>
+                <button onclick="generateImg()" id="btnGen" class="btn-primary w-full py-3 rounded-md font-bold text-sm uppercase tracking-tight">
+                    Generate Image
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="hidden">
+            <div class="w-full aspect-square max-w-lg card rounded-xl flex flex-col items-center justify-center space-y-4">
+                <div class="w-12 h-12 border-4 border-zinc-800 border-t-zinc-400 rounded-full animate-spin"></div>
+                <p class="text-zinc-500 text-xs uppercase tracking-widest font-bold">AI is dreaming...</p>
+            </div>
+        </div>
+
+        <!-- Result Section -->
+        <div id="result" class="hidden">
+            <div class="max-w-lg">
+                <div class="card p-2 rounded-xl">
+                    <img id="outputImg" src="" class="w-full h-auto rounded-lg shadow-2xl">
+                </div>
+                <div class="mt-4 flex gap-3">
+                    <a id="downloadBtn" href="" target="_blank" download="ai-image.png"
+                        class="flex-1 text-center border border-zinc-800 text-zinc-400 py-2 rounded-md text-xs font-bold uppercase hover:bg-zinc-800 transition">
+                        Open Full Resolution
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        async function generateImg() {
+            const promptInput = document.getElementById('prompt');
+            const prompt = promptInput.value.trim();
+            const btn = document.getElementById('btnGen');
+            const resultDiv = document.getElementById('result');
+            const loading = document.getElementById('loading');
+            const outputImg = document.getElementById('outputImg');
+            const downloadBtn = document.getElementById('downloadBtn');
+
+            if(!prompt) return alert("Promptna mana, mang?");
+
+            // UI State
+            btn.disabled = true;
+            btn.innerText = 'Generating...';
+            loading.classList.remove('hidden');
+            resultDiv.classList.add('hidden');
+
+            try {
+                const response = await fetch(`/api/generate?prompt=${encodeURIComponent(prompt)}`);
+                const data = await response.json();
+
+                if(data.success) {
+                    outputImg.src = data.url;
+                    downloadBtn.href = data.url;
+                    
+                    // Wait for image to load before showing
+                    outputImg.onload = () => {
+                        loading.classList.add('hidden');
+                        resultDiv.classList.remove('hidden');
+                    };
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (e) {
+                alert('Server rungsing, coba deui engke.');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Generate Image';
+                if (!outputImg.src) loading.classList.add('hidden');
+            }
+        }
+
+        // Support Ctrl+Enter to generate
+        document.getElementById("prompt").addEventListener("keydown", function(event) {
+            if (event.ctrlKey && event.key === "Enter") {
+                generateImg();
+            }
+        });
+    </script>
+</body>
+</html>
